@@ -2,8 +2,8 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  php: "localhost/php-store:dev6"
-  dotnet: "localhost/dotnet-api:latest"
+  php: "rileywebdev/php-store:dev7"
+  dotnet: "rileywebdev/dotnet-api:latest"
   mysql: "mysql:8.0"
   sqlserver: "mcr.microsoft.com/mssql/server:2019-latest"
 
@@ -21,4 +21,6 @@ mssql:
   saPassword: ""
 
 ingress:
-  enabled: false 
+  enabled: true 
+
+imagePullPolicy: IfNotPresent 
