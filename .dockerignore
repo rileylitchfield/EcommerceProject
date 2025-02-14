@@ -1,0 +1,13 @@
+# Ignore Git files and directories
+.git
+.gitignore
+
+# Ignore this file itself
+.dockerignore
+
+# Ignore documentation files
+README*
+*.md
+
+# Ignore helm charts if not needed for the build
+helm/

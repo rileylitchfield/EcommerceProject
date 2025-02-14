@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-dotnet" (include "ecommerce-project.fullname" .) }}
+  labels:
+    app: {{ include "ecommerce-project.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "ecommerce-project.name" . }}
+      tier: dotnet
+  template:
+    metadata:
+      labels:
+        app: {{ include "ecommerce-project.name" . }}
+        tier: dotnet
+    spec:
+      containers:
+        - name: dotnet-api
+          image: "{{ .Values.image.dotnet }}"
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "staging"

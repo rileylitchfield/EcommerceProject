@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-php" (include "ecommerce-project.fullname" .) }}
+  labels:
+    app: {{ include "ecommerce-project.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "ecommerce-project.name" . }}
+      tier: php
+  template:
+    metadata:
+      labels:
+        app: {{ include "ecommerce-project.name" . }}
+        tier: php
+    spec:
+      containers:
+        - name: php
+          image: "{{ .Values.image.php }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ecommerce-project.fullname" . }}
+                  key: db_host
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ecommerce-project.fullname" . }}
+                  key: db_name
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-project.fullname" . }}
+                  key: db_user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-project.fullname" . }}
+                  key: db_password
+            - name: ENV
+              value: "staging" 

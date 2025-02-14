@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-mysql" (include "ecommerce-project.fullname" .) }}
+  labels:
+    app: {{ include "ecommerce-project.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "ecommerce-project.name" . }}
+      tier: mysql
+  template:
+    metadata:
+      labels:
+        app: {{ include "ecommerce-project.name" . }}
+        tier: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-project.fullname" . }}
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ecommerce-project.fullname" . }}
+                  key: db_name
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d/
+      volumes:
+        - name: init-script
+          configMap:
+            name: mysql-init-script 

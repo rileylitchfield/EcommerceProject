@@ -1,0 +1,134 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  ACR_NAME: 'yourACRName'
+  ACR_LOGIN_SERVER: 'yourACRLoginServer.azurecr.io'
+  DOCKER_IMAGE_PHP: '$(ACR_LOGIN_SERVER)/php-store'
+  DOCKER_IMAGE_DOTNET: '$(ACR_LOGIN_SERVER)/dotnet-api'
+  HELM_RELEASE_NAME: 'ecommerce-project'
+  HELM_CHART_PATH: './helm'
+
+stages:
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+  - job: Build
+    displayName: 'Build PHP Store and .NET API'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        echo "Building .NET API..."
+        cd dotnet-api
+        dotnet build --configuration Release
+      displayName: 'Build .NET API'
+    - script: |
+        echo "Packaging PHP Store..."
+        # Here you could run composer commands or any build step required by your PHP app.
+        cd php-store
+        echo "PHP Store packaging complete"
+      displayName: 'Package PHP Store'
+
+- stage: Test
+  displayName: 'Test Stage'
+  dependsOn: Build
+  jobs:
+  - job: Test
+    displayName: 'Run Unit Tests'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        echo "Running .NET API unit tests..."
+        cd dotnet-api
+        dotnet test
+      displayName: 'Run .NET API tests'
+    - script: |
+        echo "Running PHP Store tests..."
+        # Add PHP unit test commands here if applicable
+        cd php-store
+        echo "PHP Store tests complete"
+      displayName: 'Run PHP Store tests'
+
+- stage: Containerize
+  displayName: 'Containerization Stage'
+  dependsOn: Test
+  jobs:
+  - job: Containerize
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        echo "Building Docker image for PHP Store..."
+        docker build -t $(DOCKER_IMAGE_PHP):$(Build.BuildId) php-store
+      displayName: 'Build PHP Docker Image'
+    - script: |
+        echo "Building Docker image for .NET API..."
+        docker build -t $(DOCKER_IMAGE_DOTNET):$(Build.BuildId) dotnet-api
+      displayName: 'Build .NET API Docker Image'
+    - script: |
+        echo "Logging into ACR..."
+        az acr login --name $(ACR_NAME)
+      displayName: 'ACR Login'
+    - script: |
+        echo "Pushing PHP Store image..."
+        docker push $(DOCKER_IMAGE_PHP):$(Build.BuildId)
+      displayName: 'Push PHP Docker Image'
+    - script: |
+        echo "Pushing .NET API image..."
+        docker push $(DOCKER_IMAGE_DOTNET):$(Build.BuildId)
+      displayName: 'Push .NET API Docker Image'
+
+- stage: Deploy_Staging
+  displayName: 'Deploy to Staging'
+  dependsOn: Containerize
+  jobs:
+  - job: DeployStaging
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        echo "Deploying to AKS Staging using Helm..."
+        helm upgrade --install $(HELM_RELEASE_NAME)-staging $(HELM_CHART_PATH) \
+          --set image.php=$(DOCKER_IMAGE_PHP):$(Build.BuildId),image.dotnet=$(DOCKER_IMAGE_DOTNET):$(Build.BuildId) \
+          --namespace staging --create-namespace
+      displayName: 'Helm Deploy to Staging'
+
+- stage: Approval
+  displayName: 'Approval for Production'
+  dependsOn: Deploy_Staging
+  jobs:
+  - job: Approval
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: ManualValidation@0
+      inputs:
+        notifyUsers: 'your-email@example.com'
+        instructions: 'Approve deployment to Production'
+      displayName: 'Manual Approval for Production Deployment'
+
+- stage: Deploy_Production
+  displayName: 'Deploy to Production'
+  dependsOn: Approval
+  jobs:
+  - job: DeployProduction
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        echo "Deploying to AKS Production using Helm..."
+        helm upgrade --install $(HELM_RELEASE_NAME) $(HELM_CHART_PATH) \
+          --set image.php=$(DOCKER_IMAGE_PHP):$(Build.BuildId),image.dotnet=$(DOCKER_IMAGE_DOTNET):$(Build.BuildId) \
+          --namespace production --create-namespace
+      displayName: 'Helm Deploy to Production'
+    - script: |
+        # Example rollback strategy: if the helm upgrade fails, then rollback.
+        if [ $? -ne 0 ]; then
+          echo "Deployment failed, rolling back..."
+          helm rollback $(HELM_RELEASE_NAME) 1
+        fi
+      displayName: 'Helm Rollback on Failure' 

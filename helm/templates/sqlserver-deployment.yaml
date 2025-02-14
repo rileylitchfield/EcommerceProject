@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-sqlserver" (include "ecommerce-project.fullname" .) }}
+  labels:
+    app: {{ include "ecommerce-project.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "ecommerce-project.name" . }}
+      tier: sqlserver
+  template:
+    metadata:
+      labels:
+        app: {{ include "ecommerce-project.name" . }}
+        tier: sqlserver
+    spec:
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2019-latest
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-project.fullname" . }}
+                  key: mssql-sa-password
+          ports:
+            - containerPort: 1433 

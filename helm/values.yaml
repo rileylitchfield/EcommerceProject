@@ -1,0 +1,24 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  php: "localhost/php-store:dev6"
+  dotnet: "localhost/dotnet-api:latest"
+  mysql: "mysql:8.0"
+  sqlserver: "mcr.microsoft.com/mssql/server:2019-latest"
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+
+mysql:
+  database: ecommerce
+  rootPassword: ""
+
+mssql:
+  saPassword: ""
+
+ingress:
+  enabled: false 
