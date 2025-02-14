@@ -3,11 +3,10 @@ kind: Service
 metadata:
   name: {{ include "ecommerce-project.fullname" . }}
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: {{ .Values.service.port }}
       targetPort: 80
-      nodePort: 30080
   selector:
     app: {{ include "ecommerce-project.name" . }}
     tier: php 
