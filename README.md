@@ -29,7 +29,3 @@ Copy `.env.example` to `.env` and set the following variables:
    ```bash
    helm install ecommerce-store ./helm
    ```
-
-## License
-
-[Your chosen license]
